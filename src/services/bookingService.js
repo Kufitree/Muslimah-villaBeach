@@ -77,5 +77,19 @@ export const bookingService = {
     }
 
     return mapToFrontend(data);
+  },
+
+  async deleteBooking(id) {
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error("Error deleting booking:", error);
+      throw new Error(`Failed to delete booking. ${error.message}`);
+    }
+    
+    return true;
   }
 };

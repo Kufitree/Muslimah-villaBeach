@@ -3,6 +3,7 @@ import CalendarScreen from './components/CalendarScreen';
 import DateDetailScreen from './components/DateDetailScreen';
 import BookingFormScreen from './components/BookingFormScreen';
 import SuccessScreen from './components/SuccessScreen';
+import LoginScreen from './components/LoginScreen';
 import { rooms as initialRooms } from './data/mockData';
 import { bookingService } from './services/bookingService';
 
@@ -10,7 +11,11 @@ export default function App() {
   const [rooms] = useState(initialRooms);
   const [bookings, setBookings] = useState([]);
   
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuth') === 'true';
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
   const [screen, setScreen] = useState('calendar');
@@ -20,7 +25,10 @@ export default function App() {
   const [lastSavedBooking, setLastSavedBooking] = useState(null);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     async function loadData() {
+      setIsLoading(true);
       try {
         const data = await bookingService.fetchBookings();
         setBookings(data);
@@ -32,7 +40,12 @@ export default function App() {
       }
     }
     loadData();
-  }, []);
+  }, [isAuthenticated]);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuth', 'true');
+  };
 
   const navigateToDateDetail = (dateStr) => {
     setSelectedDate(dateStr);
@@ -74,6 +87,19 @@ export default function App() {
     }
   };
 
+  const handleDeleteBooking = async (id) => {
+    try {
+      setIsLoading(true);
+      await bookingService.deleteBooking(id);
+      setBookings(bookings.filter(b => b.id !== id));
+      navigateToCalendar();
+    } catch (err) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการลบข้อมูล');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const navigateToCalendar = () => {
     setScreen('calendar');
     setSelectedDate(null);
@@ -97,6 +123,10 @@ export default function App() {
         <button className="btn" style={{marginTop: '20px', maxWidth: '200px'}} onClick={() => window.location.reload()}>ลองใหม่</button>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
@@ -135,6 +165,7 @@ export default function App() {
           defaultCheckIn={selectedDate}
           onBack={() => setScreen('dateDetail')}
           onSave={handleSaveBooking}
+          onDelete={handleDeleteBooking}
         />
       )}
 

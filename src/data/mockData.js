@@ -6,9 +6,7 @@ export const rooms = [
   { id: '5', name: 'กระจก', type: 'glass' },
   { id: '6', name: 'ดาดฟ้า', type: 'sky' },
   { id: '7', name: 'แฝด', type: 'twin' },
-  { id: '8', name: 'ใหม่', type: 'new' },
-  { id: '9', name: 'เต็นท์ A', type: 'tent' },
-  { id: '10', name: 'เต็นท์ B', type: 'tent' }
+  { id: '8', name: 'ใหม่', type: 'new' }
 ];
 
 export const initialBookings = [
@@ -33,14 +31,6 @@ export const initialBookings = [
     roomIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], // Fully booked
     depositPrice: 2000,
     roomPrice: 15000
-  },
-  {
-    id: 'b3',
-    customerName: 'Admin',
-    address: 'Staff',
-    phone: '000',
-    checkInDate: '2026-04-21',
-    checkOutDate: '2026-04-25',
-    roomIds: ['9', '10'] // เต็นท์ A, B
   }
+
 ];

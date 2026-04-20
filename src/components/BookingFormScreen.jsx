@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { getTodayDateString, isDateAvailableForRooms, getNextBookingDate, doDateRangesOverlap } from '../utils';
 import DatePickerModal from './DatePickerModal';
+import RoomPickerModal from './RoomPickerModal';
 
-export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds, initialData, defaultCheckIn, onBack, onSave }) {
+export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds, initialData, defaultCheckIn, onBack, onSave, onDelete }) {
   const [pickerType, setPickerType] = useState(null);
+  const [isRoomPickerOpen, setIsRoomPickerOpen] = useState(false);
+  const [localSelectedRoomIds, setLocalSelectedRoomIds] = useState(selectedRoomIds);
   const [formData, setFormData] = useState({
     customerName: initialData?.customerName || '',
     address: initialData?.address || '',
@@ -17,7 +20,7 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
   const todayStr = useMemo(() => getTodayDateString(), []);
   const editingBookingId = initialData?.id || null;
 
-  const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id));
+  const selectedRooms = rooms.filter(r => localSelectedRoomIds.includes(r.id));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,7 +46,7 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
       // Final conflict validation to prevent overlap boundaries
       const hasConflict = allBookings.some(b => 
         b.id !== editingBookingId &&
-        b.roomIds.some(r => selectedRoomIds.includes(r)) &&
+        b.roomIds.some(r => localSelectedRoomIds.includes(r)) &&
         doDateRangesOverlap(formData.checkInDate, formData.checkOutDate, b.checkInDate, b.checkOutDate)
       );
       
@@ -54,7 +57,7 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
       
       onSave({
         ...formData,
-        roomIds: selectedRoomIds,
+        roomIds: localSelectedRoomIds,
         id: editingBookingId || `b${Date.now()}`
       });
     } else {
@@ -72,7 +75,7 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
 
   const checkOutMin = getNextDayStr(formData.checkInDate);
   const nextBookingBoundary = formData.checkInDate ? 
-    getNextBookingDate(formData.checkInDate, selectedRoomIds, allBookings, editingBookingId) : null;
+    getNextBookingDate(formData.checkInDate, localSelectedRoomIds, allBookings, editingBookingId) : null;
 
   return (
     <div>
@@ -81,10 +84,19 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
         <h1>รายการจอง</h1>
       </div>
       <div className="content">
-        <div className="selected-tags">
-          {selectedRooms.map(r => (
-            <div key={r.id} className="tag">{r.name}</div>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div className="selected-tags" style={{ margin: 0 }}>
+            {selectedRooms.map(r => (
+              <div key={r.id} className="tag">{r.name}</div>
+            ))}
+          </div>
+          <button 
+            className="btn" 
+            style={{ padding: '5px 10px', fontSize: '0.9em' }}
+            onClick={() => setIsRoomPickerOpen(true)}
+          >
+            &#9998; แก้ไขห้อง
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ border: '2px solid var(--color-text)', borderRadius: 'var(--border-radius)', padding: '20px' }}>
@@ -169,7 +181,20 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
         </form>
       </div>
 
-      <div className="bottom-bar" style={{ justifyContent: 'center' }}>
+      <div className="bottom-bar" style={{ justifyContent: 'center', gap: '15px' }}>
+        {editingBookingId && (
+          <button 
+            className="btn" 
+            style={{ width: '150px', border: '2px solid #e74c3c', color: '#e74c3c', background: 'transparent' }} 
+            onClick={() => {
+              if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองนี้?")) {
+                onDelete(editingBookingId);
+              }
+            }}
+          >
+            ยกเลิกการจอง
+          </button>
+        )}
         <button className="btn" style={{ width: '150px', border: '2px solid var(--color-text)', background: 'transparent' }} onClick={handleSubmit}>
           บันทึก
         </button>
@@ -180,7 +205,7 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
         isOpen={pickerType === 'checkIn'}
         onClose={() => setPickerType(null)}
         minDate={todayStr}
-        isDateDisabled={(str) => !isDateAvailableForRooms(str, selectedRoomIds, allBookings, editingBookingId)}
+        isDateDisabled={(str) => !isDateAvailableForRooms(str, localSelectedRoomIds, allBookings, editingBookingId)}
         onSelectDate={(str) => handleDateSelect('checkInDate', str)}
       />
 
@@ -191,6 +216,21 @@ export default function BookingFormScreen({ rooms, allBookings, selectedRoomIds,
         minDate={checkOutMin}
         maxDate={nextBookingBoundary || undefined}
         onSelectDate={(str) => handleDateSelect('checkOutDate', str)}
+      />
+
+      <RoomPickerModal
+        isOpen={isRoomPickerOpen}
+        onClose={() => setIsRoomPickerOpen(false)}
+        rooms={rooms}
+        selectedRoomIds={localSelectedRoomIds}
+        allBookings={allBookings}
+        editingBookingId={editingBookingId}
+        checkInDate={formData.checkInDate}
+        checkOutDate={formData.checkOutDate}
+        onSave={(newIds) => {
+          setLocalSelectedRoomIds(newIds);
+          setIsRoomPickerOpen(false);
+        }}
       />
     </div>
   );
